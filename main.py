@@ -1,3 +1,9 @@
+WATER = 'w'
+MISSED = 'm'
+HIT = 'h'
+SUNK = 's'
+ATTEMPTED = 'a'
+
 class Board:
     def __init__(self):
         self.board = self.generate_board()
@@ -7,7 +13,7 @@ class Board:
     def generate_board():
         board = []
         for i in range(10):
-            board.append(['w' for i in range(10)])
+            board.append([WATER for i in range(10)])
         return board
 
     def place_ship(self, name, length, beg_coords, vertical=True):
@@ -37,9 +43,9 @@ class Board:
         target = self.board[row][column]
         if isinstance(target, Ship):
             outcome = target.register_hit(coords)
-            if outcome == 'hit':
+            if outcome == HIT:
                 print('Confirmed hit!')
-            elif outcome == 'attempted':
+            elif outcome == ATTEMPTED:
                 print('Already attempted these coordinates')
             else:
                 print('Confirmed hit! Your enemy\'s ' + target.name + ' has been sunk!' )
@@ -48,12 +54,11 @@ class Board:
                 if self.is_winner():
                     print('Congratulations! You have decimated the enemy\'s fleet.')
 
-        elif target == 'm':
+        elif target == MISSED:
             print('Already attempted these coordinates')
         else:
             print('Attempt missed')
-            self.board[coords[1]-1][coords[0]-1] = 'm'
-            
+            self.board[coords[1]-1][coords[0]-1] = MISSED       
 
 class Ship:
     def __init__(self, name, length, beg_coords, vertical=True):
@@ -86,12 +91,12 @@ class Ship:
         for i, (coords, is_hit) in enumerate(self.coords_list):
             if targeted_coords[0] == coords[0] and targeted_coords[1] == coords[1]:
                 if is_hit:
-                    return 'attempted'
+                    return ATTEMPTED
                 else:
                     self.coords_list[i][1] = True
                     if self.is_sunk():
-                        return 'sunk'
-                    return 'hit'
+                        return SUNK
+                    return HIT
 
 def main():
     board = Board()
