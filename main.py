@@ -13,6 +13,8 @@ SHIPS = [
     { 'name': 'Submarine', 'length': 3 },
     { 'name': 'Patrol Boat', 'length': 2 },
 ]
+ENEMY_CONFIRMED_HIT = 'Your enemy has a confirmed hit.'
+ENEMY_SUNK_SHIP = 'Confirmed hit! The enemy has sunk your '
 
 class Board:
     def __init__(self):
@@ -44,8 +46,15 @@ class Board:
                 return True
         return False
     
-    def is_winner(self):
-        return len(self.ships) == 0
+    def is_loser(self):
+        num_sunk = 0
+        for ship in self.ships:
+            if ship.is_sunk():
+                num_sunk += 1
+            
+        if num_sunk == len(self.ships):
+            return True
+        return False
 
     def attempt_coordinates(self, coords, player):
         row = coords[1] - 1
@@ -57,32 +66,30 @@ class Board:
         if isinstance(target, Ship):
             outcome = target.register_hit(coords)
             if outcome == HIT:
-                print(f'{player}: Confirmed hit!')
+                if player == 'User':
+                    return 'Confirmed hit!'
+                return ENEMY_CONFIRMED_HIT
             elif outcome == ATTEMPTED:
-                print(f'{player}: Already attempted these coordinates')
+                 return 'You already attempted these coordinates.'
             else:
                 if player == 'User':
-                    print(f'{player}: Confirmed hit! Your enemy\'s ' + target.name + ' has been sunk!' )
-                else:
-                    print(f'{player}: Confirmed hit! The enemy has sunk your ' + target.name + '!' )
-                self.ships.remove(target)
-
-                if self.is_winner():
-                    if player == 'User':
-                        print(f'{player}: Congratulations! You have decimated the enemy\'s fleet.')
-                    else:
-                        print(f'{player}: The enemy has decimated your fleet.')
+                    return 'Confirmed hit! Your enemy\'s ' + target.name + ' has been sunk!'
+                return ENEMY_SUNK_SHIP + target.name + '!'
 
         elif target == MISSED:
-            print(f'{player}: Already attempted these coordinates')
+            return 'Coordinates already attempted.'
         else:
-            print(f'{player}: Attempt missed')
             self.display[coords[1]-1][coords[0]-1] = MISSED       
+            if player == 'User':
+                return 'Your attempt missed.'
+            return 'The enemy\'s attempt missed.'
+
 
 class Ship:
     def __init__(self, name, length, beg_coords, vertical=True):
         self.name = name
         self.length = length
+        self.vertical = vertical
         
         self.generate_coords(length, vertical, beg_coords)
     
@@ -117,10 +124,28 @@ class Ship:
                     if self.is_sunk():
                         return SUNK
                     return HIT
+    
+    def is_coords_hit(self, check_coords):
+        for coords, is_hit in self.coords_list:
+            if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
+                return is_hit
+    
+    def is_first_end(self, check_coords):
+        coords, is_hit = self.coords_list[0]
+        if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
+            return True
+        return False
+
+    def is_second_end(self, check_coords):
+        coords, is_hit = self.coords_list[-1]
+        if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
+            return True
+        return False
 
 class AI:
     def __init__(self):
         self.attempts = []
+        self.targets = []
         self.board = Board()
 
         self.generate_ships()
@@ -135,23 +160,52 @@ class AI:
                     x = random.randint(1, 10)
                     y = random.randint(1, 11-ship['length'])
                 else:
-                    x = random.randint(0, 11-ship['length']) 
+                    x = random.randint(1, 11-ship['length']) 
                     y = random.randint(1, 10)
             
                 is_placed = self.board.place_ship(ship['name'], ship['length'], (x, y), vertical)
     
     def attempt_target(self, user_board):
-        new_target = False
-        while not new_target:
-            new_target = True
-            x = random.randint(1, 10) 
-            y = random.randint(1, 10)
-            for coords in self.attempts:
-                if coords[0] == x and coords[1] == y:
-                    new_target = False
+        if len(self.targets) == 0:
+            new_target = False
+            while not new_target:
+                new_target = True
+                x = random.randint(1, 10) 
+                y = random.randint(1, 10)
+                for coords in self.attempts:
+                    if coords[0] == x and coords[1] == y:
+                        new_target = False
+        else:
+            new_target = self.targets.pop()
+            x, y = new_target
 
         self.attempts.append((x, y))
-        user_board.attempt_coordinates((x, y), 'Enemy')
+        result = user_board.attempt_coordinates((x, y), 'Enemy')
+
+        if result == ENEMY_CONFIRMED_HIT:
+            self.add_coords_to_targets((x, y))
+        elif result[:len(ENEMY_SUNK_SHIP)] == ENEMY_SUNK_SHIP:
+            self.targets = []
+
+        return result
+    
+    def add_coords_to_targets(self, coords):
+        x, y = coords
+        targets = [(x, y+1), (x+1, y), (x, y-1), (x-1, y)]
+
+        for i, target in enumerate(targets):
+            if target[0] < 1 or target[0] > 10 or target[1] < 1 or target[1] > 10:
+                del targets[i]
+            else:
+                for coords in self.attempts:
+                    if coords[0] == target[0] and coords[1] == target[1]:
+                        del targets[i]
+                
+                for coords in self.targets:
+                    if coords[0] == target[0] and coords[1] == target[1]:
+                        del targets[i]
+        
+        self.targets.extend(targets)
 
 def main():
     user_board = Board()
@@ -166,16 +220,25 @@ def main():
     while not winner:
         x_coord = input('Input x-coordinate of target: ')
         y_coord = input('Input y-coordinate of target: ')
-        ai.board.attempt_coordinates((int(x_coord), int(y_coord)), 'User')
+        result = ai.board.attempt_coordinates((int(x_coord), int(y_coord)), 'User')
+        print(result)
         print("\nEnemy's board:")
         pprint.pprint(ai.board.display)
 
-        ai.attempt_target(user_board)
-        print("\nOwn board:")
-        pprint.pprint(user_board.display)
-        print("\n")
-        if user_board.is_winner() or ai.board.is_winner():
+        if ai.board.is_loser():
+            print("Congratulations! You have decimated the enemy\'s fleet.")
             winner = True
+        else:
+            result = ai.attempt_target(user_board)
+            print("\n" + result)
+            print("\nOwn board:")
+            pprint.pprint(user_board.display)
+            
+            if user_board.is_loser():
+                print("The enemy has decimated your fleet!")
+                winner = True
+            
+            print("\n")
 
 
 if __name__ == "__main__":
