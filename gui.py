@@ -21,7 +21,7 @@ BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 
 ships = [
-    { 'name': 'Carrier', 'length': 5, 'vertical': False },
+    { 'name': 'Carrier', 'length': 5, 'vertical': True },
     { 'name': 'Battleship', 'length': 4, 'vertical': True },
     { 'name': 'Destroyer', 'length': 3, 'vertical': True },
     { 'name': 'Submarine', 'length': 3, 'vertical': True },
@@ -46,7 +46,10 @@ MISSED = 'm'
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Battleship")
 
-def drawboard(ai_board, user_board):
+def draw_board(ai_board, user_board):
+    '''Draws the Enemy and User boards on the GUI, given the state of the game'''
+
+    # Iterate over every square of AI Board
     for r in range(len(ai_board.display) + 1):
         for c in range(len(ai_board.display) + 1):
             if r == 0 or c == 0:
@@ -60,22 +63,22 @@ def drawboard(ai_board, user_board):
                     WIN.blit(letter, (SQUARESIZE/2 - letter.get_width()/2, (9/2+r)*SQUARESIZE - letter.get_height()/2))
             else:
                 val = ai_board.display[r-1][c-1]
-                if isinstance(val, Ship):
-                    if val.is_sunk():
-                        # pygame.draw.rect(WIN, GREY, (c*SQUARESIZE, (r+4)*SQUARESIZE, SQUARESIZE, SQUARESIZE))
-                        drawshipsquare((c*SQUARESIZE, (r+4)*SQUARESIZE), (c, r), ai_board)
+                if isinstance(val, Ship): # Square contains ship
+                    if val.is_sunk(): # Draw ship on AI Board if sunk
+                        draw_ship_square((c*SQUARESIZE, (r+4)*SQUARESIZE), (c, r), ai_board)
                         pygame.draw.circle(WIN, RED, ((c+1)*SQUARESIZE - SQUARESIZE/2, (r+5)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/4)
                     else:
                         pygame.draw.rect(WIN, BLACK, (c*SQUARESIZE, (r+4)*SQUARESIZE, SQUARESIZE, SQUARESIZE))
                         pygame.draw.rect(WIN, BLUE, (c*SQUARESIZE+2, (r+4)*SQUARESIZE+2, SQUARESIZE-2, SQUARESIZE-2))
-                        if val.is_coords_hit((c, r)):
+                        if val.is_coords_hit((c, r)): # Ship is hit in square
                             pygame.draw.circle(WIN, RED, ((c+1)*SQUARESIZE - SQUARESIZE/2, (r+5)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/4)
                 else:
                     pygame.draw.rect(WIN, BLACK, (c*SQUARESIZE, (r+4)*SQUARESIZE, SQUARESIZE, SQUARESIZE))
                     pygame.draw.rect(WIN, BLUE, (c*SQUARESIZE+2, (r+4)*SQUARESIZE+2, SQUARESIZE-2, SQUARESIZE-2))
-                    if val == MISSED: 
+                    if val == MISSED: # Mark missed square
                         pygame.draw.circle(WIN, YELLOW, ((c+1)*SQUARESIZE - SQUARESIZE/2, (r+5)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/4)
 
+    # Iterate over every square of user board
     for r in range(len(user_board.display) + 1):
         for c in range(len(user_board.display) + 1):
             if r == 0 or c == 0:
@@ -90,20 +93,22 @@ def drawboard(ai_board, user_board):
             else:
                 val = user_board.display[r-1][c-1]
                 pygame.draw.rect(WIN, BLACK, (WIDTH/2+c*SQUARESIZE, (4*SQUARESIZE)+r*SQUARESIZE, SQUARESIZE, SQUARESIZE))
-                if isinstance(val, Ship):
-                    drawshipsquare((WIDTH/2+c*SQUARESIZE, (4*SQUARESIZE)+r*SQUARESIZE), (c, r), user_board)
-                    if val.is_coords_hit((c,r)):
+                if isinstance(val, Ship): # Ship square
+                    draw_ship_square((WIDTH/2+c*SQUARESIZE, (4*SQUARESIZE)+r*SQUARESIZE), (c, r), user_board)
+                    if val.is_coords_hit((c,r)): # Ship square is hit
                         pygame.draw.circle(WIN, RED, (WIDTH/2+(c+1)*SQUARESIZE - SQUARESIZE/2, (4*SQUARESIZE)+(r+1)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/4)
                     else:
                         pygame.draw.circle(WIN, BLACK, (WIDTH/2+(c+1)*SQUARESIZE - SQUARESIZE/2, (4*SQUARESIZE)+(r+1)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/5)
                 else:
                     pygame.draw.rect(WIN, BLUE, (WIDTH/2+c*SQUARESIZE+2, (4*SQUARESIZE)+r*SQUARESIZE+2, SQUARESIZE-2, SQUARESIZE-2))
-                    if val == MISSED:
+                    if val == MISSED: # Mark AI misses
                         pygame.draw.circle(WIN, YELLOW, (WIDTH/2+(c+1)*SQUARESIZE - SQUARESIZE/2, (4*SQUARESIZE)+(r+1)*SQUARESIZE+1 - SQUARESIZE/2), SQUARESIZE/4)
 
     pygame.display.update()
 
-def drawship(ship, coords, user_board):
+def draw_ship(ship, coords, user_board):
+    '''Draws the ship where the user is hovering before placement'''
+
     if ship['vertical']:
         if coords[1] + ship['length'] <= 11:
             for i in range(ship['length']):
@@ -127,7 +132,9 @@ def drawship(ship, coords, user_board):
     
     pygame.display.update()
 
-def drawheader(header_text):
+def draw_header(header_text):
+    '''Draws the header text to the GUI'''
+
     pygame.draw.rect(WIN, WHITE, (0,0,WIDTH, SQUARESIZE*3))
 
     pygame.draw.rect(WIN, BLACK, (0, 3*SQUARESIZE, WIDTH/2+2, SQUARESIZE))
@@ -145,7 +152,9 @@ def drawheader(header_text):
 
     pygame.display.update()
 
-def drawshipsquare(location, coords, board):
+def draw_ship_square(location, coords, board):
+    '''Draws the ship square given the location. Ends are curved'''
+
     square = board.display[coords[1]-1][coords[0]-1]
     if square.vertical:
         if square.is_first_end(coords):
@@ -168,14 +177,17 @@ def drawshipsquare(location, coords, board):
 
 
 def main():
+    '''Main function of the game'''
+
+    # Instantiates the game
     user_board = Board()
     ai = AI()
-    drawheader('Place your ships. Use space to rotate a ship.')
-    drawboard(ai.board, user_board)
+    draw_header('Place your ships. Use space to rotate a ship.')
+    draw_board(ai.board, user_board)
 
     run = True
-    while run:
-        
+    while run: # Overall pygame loop
+        # Loop for the user to place ships
         while len(ships) > 0:
             x, y = pygame.mouse.get_pos()
 
@@ -187,11 +199,11 @@ def main():
                 y = math.ceil(y/SQUARESIZE)
                 
                 
-                drawship(ships[0], (x, y), user_board)
+                draw_ship(ships[0], (x, y), user_board)
             
             
             for event in pygame.event.get():
-                drawboard(ai.board, user_board)
+                draw_board(ai.board, user_board)
                 if event.type == pygame.QUIT:
                     sys.exit()
 
@@ -217,9 +229,9 @@ def main():
 
         
         winner = False
-        while not winner:
-            drawboard(ai.board, user_board)
-            drawheader('Your turn, select a set of the enemy\'s coordinates.')
+        while not winner: # Gameplay loop
+            draw_board(ai.board, user_board)
+            draw_header('Your turn, select a set of the enemy\'s coordinates.')
 
             for event in pygame.event.get():
                 
@@ -237,12 +249,12 @@ def main():
                         y = math.ceil(y/SQUARESIZE)
 
                         result = ai.board.attempt_coordinates((x, y), 'User')
-                        drawboard(ai.board, user_board)
-                        drawheader(result)
+                        draw_board(ai.board, user_board)
+                        draw_header(result)
 
                         if ai.board.is_loser():
                             pygame.time.wait(1250)
-                            drawheader('Congratulations, you have decimated the enemy\'s fleet!')
+                            draw_header('Congratulations, you have decimated the enemy\'s fleet!')
                             pygame.time.wait(2000)
                             winner = True
                             run = False
@@ -252,12 +264,12 @@ def main():
 
                             pygame.time.wait(1250)
                             result = ai.attempt_target(user_board)
-                            drawboard(ai.board, user_board)
-                            drawheader(result)
+                            draw_board(ai.board, user_board)
+                            draw_header(result)
 
                             if user_board.is_loser():
                                 pygame.time.wait(1250)
-                                drawheader('The enemy has decimated your fleet.')
+                                draw_header('The enemy has decimated your fleet.')
                                 pygame.time.wait(2000)
                                 winner = True
                                 run = False
@@ -267,9 +279,7 @@ def main():
                             print("\n")
 
                             pygame.time.wait(1250)
-
-
-
-                    
+                            
+                                                
 if __name__ == "__main__":
     main()

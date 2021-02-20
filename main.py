@@ -17,18 +17,21 @@ ENEMY_CONFIRMED_HIT = 'Your enemy has a confirmed hit.'
 ENEMY_SUNK_SHIP = 'Confirmed hit! The enemy has sunk your '
 
 class Board:
+    '''Battleship Board Class'''
     def __init__(self):
         self.ships = []
         
         self.generate_board()
 
     def generate_board(self):
+        '''Board is initialized as a 10x10 matrix of all water'''
         display = []
         for i in range(10):
             display.append([WATER for i in range(10)])
         self.display = display
 
     def place_ship(self, name, length, beg_coords, vertical=True):
+        '''Will place a given ship on the board if valid placement'''
         ship = Ship(name, length, beg_coords, vertical)
         if self.check_if_valid_placement(ship):
             return False
@@ -39,6 +42,7 @@ class Board:
             return True
     
     def check_if_valid_placement(self, ship):
+        '''Checks if the ship placement is valid'''
         for (coords, is_hit) in ship.coords_list:
             if coords[0] > 10 or coords[1] > 10:
                 return True
@@ -47,6 +51,7 @@ class Board:
         return False
     
     def is_loser(self):
+        '''Returns if all the ships are sunk'''
         num_sunk = 0
         for ship in self.ships:
             if ship.is_sunk():
@@ -57,6 +62,7 @@ class Board:
         return False
 
     def attempt_coordinates(self, coords, player):
+        '''Allows the opponent to attempt a set of coordinates on the Board'''
         row = coords[1] - 1
         column = coords[0] - 1
         if (row > 10 or row < 0 or
@@ -86,6 +92,7 @@ class Board:
 
 
 class Ship:
+    '''Battleship Ship Class'''
     def __init__(self, name, length, beg_coords, vertical=True):
         self.name = name
         self.length = length
@@ -94,6 +101,7 @@ class Ship:
         self.generate_coords(length, vertical, beg_coords)
     
     def generate_coords(self, length, vertical, beg_coords):
+        '''Generates the coordinates of the entire ship'''
         coords_list = [[beg_coords, False]]
         if vertical:
             for i in range(1, length):
@@ -108,6 +116,7 @@ class Ship:
         return self.name
             
     def is_sunk(self):
+        '''Determines if the ship is sunk'''
         hits = 0
         for (coords, is_hit) in self.coords_list:
             if is_hit:
@@ -115,6 +124,7 @@ class Ship:
         return hits == self.length
     
     def register_hit(self, targeted_coords):
+        '''Registers a hit on the Ship'''
         for i, (coords, is_hit) in enumerate(self.coords_list):
             if targeted_coords[0] == coords[0] and targeted_coords[1] == coords[1]:
                 if is_hit:
@@ -126,23 +136,27 @@ class Ship:
                     return HIT
     
     def is_coords_hit(self, check_coords):
+        '''Checks if the given coords are a hit on the Ship''' 
         for coords, is_hit in self.coords_list:
             if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
                 return is_hit
     
     def is_first_end(self, check_coords):
+        '''Determines if the given coords are the front of the Ship'''
         coords, is_hit = self.coords_list[0]
         if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
             return True
         return False
 
     def is_second_end(self, check_coords):
+        '''Determines if the given coords are the end of the Ship'''
         coords, is_hit = self.coords_list[-1]
         if coords[0] == check_coords[0] and coords[1] == check_coords[1]:
             return True
         return False
 
 class AI:
+    '''Battleship AI Class'''
     def __init__(self):
         self.attempts = []
         self.targets = []
@@ -151,6 +165,7 @@ class AI:
         self.generate_ships()
     
     def generate_ships(self):
+        '''Randomly generates the Ships on the Board'''
         for ship in SHIPS: 
             vertical = True if random.randint(0, 1) == 1 else False
 
@@ -166,6 +181,7 @@ class AI:
                 is_placed = self.board.place_ship(ship['name'], ship['length'], (x, y), vertical)
     
     def attempt_target(self, user_board):
+        '''Implements the Hunt Algorithm to attempt targets on User Board'''
         if len(self.targets) == 0:
             new_target = False
             while not new_target:
@@ -190,6 +206,7 @@ class AI:
         return result
     
     def add_coords_to_targets(self, coords):
+        '''When hit is registered, adds surrounding coords to target queue'''
         x, y = coords
         targets = [(x, y+1), (x+1, y), (x, y-1), (x-1, y)]
 
@@ -208,6 +225,7 @@ class AI:
         self.targets.extend(targets)
 
 def main():
+    '''Main function for a non-visual Battleship game'''
     user_board = Board()
     user_board.place_ship('Carrier', 5, (2, 5))
     user_board.place_ship('Battleship', 4, (4, 2), vertical=False)
