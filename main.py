@@ -194,7 +194,7 @@ class AI:
         else:
             new_target = self.targets.pop()
             x, y = new_target
-
+        
         self.attempts.append((x, y))
         result = user_board.attempt_coordinates((x, y), 'Enemy')
 
@@ -209,19 +209,23 @@ class AI:
         '''When hit is registered, adds surrounding coords to target queue'''
         x, y = coords
         targets = [(x, y+1), (x+1, y), (x, y-1), (x-1, y)]
-
+        
+        remove_targets = []
         for i, target in enumerate(targets):
             if target[0] < 1 or target[0] > 10 or target[1] < 1 or target[1] > 10:
-                del targets[i]
+                remove_targets.append(i)
             else:
                 for coords in self.attempts:
                     if coords[0] == target[0] and coords[1] == target[1]:
-                        del targets[i]
+                        remove_targets.append(i)
                 
                 for coords in self.targets:
                     if coords[0] == target[0] and coords[1] == target[1]:
-                        del targets[i]
+                        remove_targets.append(i)
         
+        for i in remove_targets[::-1]:
+            del targets[i]
+
         self.targets.extend(targets)
 
 def main():
